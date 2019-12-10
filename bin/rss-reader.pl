@@ -26,9 +26,10 @@ option 'dryrun!', 'Print to screen instead of doing changes';
  sub main {
     my $self = shift;
     my @e = $self->extra_options;
-    my @unwanted = qw/antipanel reprise trær/;
+    my @unwanted = qw/antipanel reprise trær plante/;
     #my $old_date = Mojo::Date->new('2019-06-30T23:59:59+01:00')->epoch;
-    my $old_date = Mojo::Date->new('Wed, 03 Jul 2019 08:00:00 GMT')->epoch;
+    my $old_date = Mojo::Date->new('Mon, 23 Sep 2019 10:30:00 GMT')->epoch;
+    # https://podkast.nrk.no/program/abels_taarn.rss 1/7-2019
     my $feed = Mojo::Feed->new(
     	url => "https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss");
     say $feed->title;
@@ -39,13 +40,13 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 
       	my $title = $item->title;
       	for my $x(@unwanted) {
-      		next if $title =~ /$x/;
+      		next if $title =~ /$x/i;
       	}
       	say $item->title;
 
 		my $description = $item->description;
       	for my $x(@unwanted) {
-      		next ITEM if $description =~ /$x/;
+      		next ITEM if $description =~ /$x/i;
       	}
 		say $description;
 
