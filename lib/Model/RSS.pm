@@ -1,6 +1,7 @@
 package Model::RSS;
 use Mojo::Base -base, -signatures;
 use Mojo::SQLite;
+use Mojo::File 'path';
 use open ':encoding(UTF-8)';
 
 
@@ -12,7 +13,7 @@ Model::RSS.pm - Handle comunication with DB.
 
 =head1 DESCRIPTION
 
-<DESCRIPTION>
+Handle all communication with the database.
 
 =head1 ATTRIBUTES
 
@@ -48,7 +49,7 @@ has sqlite => sub {
 has db => sub {shift->sqlite->db};
 
 
-option 'dryrun!', 'Print to screen instead of doing changes';
+has 'dryrun';
 
 =head1 METHODS
 
@@ -62,7 +63,12 @@ sub read {
     my $self = shift;
     my $res = $self->db->query(q|select a, b from c|);
     die $res->stderr if ($res->err);
+    return $res->hashes->to_array;
 }
+
+=head2 write
+
+=cut
 
 sub write {
     my $self = shift;
@@ -72,6 +78,21 @@ sub write {
     my $res = $self->db->query('replace into c('.join(',',@keys).')', @values);
     die $res->stderr if ($res->err);
 }
+1;
 
+__END__
 
-__PACKAGE__->new(options_cfg=>{extra=>1})->main();
+create table feeds (
+id auto,
+name text
+);
+
+create table episodes (
+id auto,
+id_feed integer,
+name text,
+description text,
+downloaded boolean,
+rejected boolean,
+cached_value integer
+);
