@@ -61,7 +61,7 @@ has 'dryrun';
 
 sub read {
     my $self = shift;
-    my $res = $self->db->query(q|select a, b from c|);
+    my $res = $self->db->query(q|select feed, title, published, is_downloaded, is_rejected from episode|);
     die $res->stderr if ($res->err);
     return $res->hashes->to_array;
 }
