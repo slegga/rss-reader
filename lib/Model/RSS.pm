@@ -61,8 +61,11 @@ has 'dryrun';
 
 sub read {
     my $self = shift;
-    my $res = $self->db->query(q|select feed, title, published, is_downloaded, is_rejected from episode|);
-    die $res->stderr if ($res->err);
+    my $res;
+    eval {
+	    $res = $self->db->query(q|select feed, title, published_epoch, is_downloaded, is_rejected from episodes|);1;
+	} or  die "DB ERROR: $!   $@";
+	return if ! $res;
     return $res->hashes->to_array;
 }
 
@@ -75,8 +78,11 @@ sub write {
     my $hash =shift;
     my @keys = keys %$hash;
     my @values = values %$hash;
-    my $res = $self->db->query('replace into c('.join(',',@keys).')', @values);
-    die $res->stderr if ($res->err);
+    my $res;
+    eval {
+	    $res = $self->db->query('replace into c('.join(',',@keys).')', @values);1;
+	} or  die "DB ERROR: $!   $@";
+    return $res;
 }
 1;
 
