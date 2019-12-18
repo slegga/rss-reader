@@ -27,7 +27,7 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 
  sub main {
     my $self = shift;
-    my @e = $self->extra_options;
+    my @e = @{ $self->extra_options };
     my @unwanted = qw/antipanel reprise trær plante/;
     #my $old_date = Mojo::Date->new('2019-06-30T23:59:59+01:00')->epoch;
     my $old_date = Mojo::Date->new('Mon, 23 Sep 2019 10:30:00 GMT')->epoch;
