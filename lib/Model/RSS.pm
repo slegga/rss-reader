@@ -3,7 +3,7 @@ use Mojo::Base -base, -signatures;
 use Mojo::SQLite;
 use Mojo::File 'path';
 use open ':encoding(UTF-8)';
-
+use Mojo::JSON 'to_json';
 
 
 
@@ -59,46 +59,58 @@ has 'dryrun';
 
 =cut
 
-sub read {
+sub _query {
     my $self = shift;
-    my $res;
+    my $query = shift;
+    my $res; #q|select id, feed, title, published_epoch, is_downloaded, is_rejected from episodes|
     eval {
-	    $res = $self->db->query(q|select feed, title, published_epoch, is_downloaded, is_rejected from episodes|);1;
+	    $res = $self->db->query($query,@_);1;
 	} or  die "DB ERROR: $!   $@";
 	return if ! $res;
-    return $res->hashes->to_array;
+    return $res->hashes;
 }
 
-=head2 write
+# _episode_write
+#
+# Internal write, handle errors.
 
-=cut
-
-sub write {
+sub _episode_write {
     my $self = shift;
     my $hash =shift;
     my @keys = keys %$hash;
     my @values = values %$hash;
     my $res;
     eval {
-	    $res = $self->db->query('replace into c('.join(',',@keys).')', @values);1;
-	} or  die "DB ERROR: $!   $@";
+	    $res = $self->db->query('replace into episodes('.join(',',@keys).')', @values);1;
+	} or  die "DB ERROR: $!   $@ ".$self->dbfile.' '.to_json $hash;
     return $res;
+}
+
+=head2 rejected_add
+
+Add a list of rejected episodes
+
+=cut
+
+sub rejected_add {
+	my $self = shift;
+	my @rejected = @_;
+	for my $r(@rejected) {
+		$self->_episode_write({id=>$r,is_rejected=>1});
+	}
+}
+
+=head2 rejected_read
+
+Return a list of rejected ids
+
+=cut
+
+sub rejected_read {
+	my $self = shift;
+
+	my @t = map{$_->{id}}  @{ $self->_query(q|select id from episodes where is_rejected = 1|)};
+	return \@t;
 }
 1;
 
-__END__
-
-create table feeds (
-id auto,
-name text
-);
-
-create table episodes (
-id auto,
-id_feed integer,
-name text,
-description text,
-downloaded boolean,
-rejected boolean,
-cached_value integer
-);

@@ -10,6 +10,7 @@ use open ':encoding(UTF-8)';
 use Mojo::Feed;
 use Data::Dumper;
 use Data::Printer;
+use Model::RSS;
 #use Carp::Always;
 
 =head1 NAME
@@ -22,6 +23,9 @@ List 20 episodes. May mark some as downloaded or rejecteded.
 
 =cut
 
+has 'rss' => sub{Model::RSS->new};
+option 'list=i',  'Set maxium returned episodes';
+option 'reject=s', 'Comma separated list of episode ids which you do not want to listen to';
 option 'dryrun!', 'Print to screen instead of doing changes';
 
 
@@ -31,6 +35,13 @@ option 'dryrun!', 'Print to screen instead of doing changes';
     my @unwanted = qw/antipanel reprise trær plante/;
     #my $old_date = Mojo::Date->new('2019-06-30T23:59:59+01:00')->epoch;
     my $old_date = Mojo::Date->new('Mon, 23 Sep 2019 10:30:00 GMT')->epoch;
+
+	if ($self->reject) {
+		my @rejected = split (/\,/, $self->reject);
+		$self->rss->rejected_add(@rejected);
+		return $self->graceful_exit;
+	}
+
     my @rsses = ( 'https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
     			, 'https://rss.acast.com/teknopreik'
@@ -43,11 +54,18 @@ option 'dryrun!', 'Print to screen instead of doing changes';
     			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
     			);
     my @items;
+    my $nore = 300; # number of returned episodes
+    if ($self->list) {
+    	$nore = $self->list;
+    }
+    my %rejected = map{$_,1} @{$self->rss->rejected_read };
+
+    say Dumper \%rejected;
     for my $rss (@rsses) {
     	my $feed = Mojo::Feed->new(
     		url => $rss);
 	    ITEM:
-	    for my $raw($feed->items->head(300)->each) {
+	    for my $raw($feed->items->head($nore)->each) {
 	    	next if !$raw;
     		my $item;
 	    	if (! $raw->can('published')) {
@@ -71,6 +89,10 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 
 			my $url = $raw->enclosures->to_array->[0];
 			next if $url !~ /mp3/i;
+
+			$item->{id} = $raw->id;
+			next if  $rejected{$item->{id}};
+
 			$url =~ s/.*url=\"//;
 			$url =~ s/\".*//;
 			$item->{url} =  "wget $url";
@@ -79,13 +101,24 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 			push @items, $item;
 	    }
     }
-    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
-    	say $item->{published}.'  '.$item->{feed};
-    	for my $key(qw/title description url/) {
-    		say $item->{$key};
-    	}
-    	say '--';
-    }
+    if ($self->list) {
+	    for my $item(sort {$a->{published}->epoch <=> $b->{published}->epoch}  @items[0 .. ($nore-1)]) {
+	    	say join(' ',$item->{id},$item->{published},$item->{feed});
+	    	for my $key(qw/title description url/) {
+	    		say $item->{$key};
+	    	}
+	    	say '--';
+	    }
+
+    } else {
+	    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
+	    	say $item->{published}.'  '.$item->{feed};
+	    	for my $key(qw/title description url/) {
+	    		say $item->{$key};
+	    	}
+	    	say '--';
+	    }
+	}
 }
 
-__PACKAGE__->new(options_cfg=>{extra=>1})->main();
+__PACKAGE__->new(options_cfg=>{})->main();
