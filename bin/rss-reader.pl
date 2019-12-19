@@ -31,7 +31,17 @@ option 'dryrun!', 'Print to screen instead of doing changes';
     my @unwanted = qw/antipanel reprise trær plante/;
     #my $old_date = Mojo::Date->new('2019-06-30T23:59:59+01:00')->epoch;
     my $old_date = Mojo::Date->new('Mon, 23 Sep 2019 10:30:00 GMT')->epoch;
-    my @rsses = ('https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss', 'https://podkast.nrk.no/program/abels_taarn.rss');
+    my @rsses = ( 'https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
+    			, 'https://podkast.nrk.no/program/abels_taarn.rss'
+    			, 'https://rss.acast.com/teknopreik'
+    			, 'https://acast.aftenposten.no/rss/forklart'
+    			, 'https://acast.aftenposten.no/rss/teknologimagasinet'
+    			, 'https://acast.aftenposten.no/rss/foreldrekoden'
+    			, 'https://acast.aftenposten.no/rss/sprekpodden'
+    			, 'http://api.vg.no/podcast/e24-podden.rss'
+    			, 'https://www.tu.no/emne/podkast'
+    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
+    			);
     my @items;
     for my $rss (@rsses) {
     	my $feed = Mojo::Feed->new(
@@ -60,6 +70,7 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 			$item->{description} = $description;
 
 			my $url = $raw->enclosures->to_array->[0];
+			next if $url !~ /mp3/i;
 			$url =~ s/.*url=\"//;
 			$url =~ s/\".*//;
 			$item->{url} =  "wget $url";
