@@ -24,9 +24,10 @@ List 20 episodes. May mark some as downloaded or rejecteded.
 =cut
 
 has 'rss' => sub{Model::RSS->new};
-option 'list=i',  'Set maxium returned episodes';
-option 'reject=s', 'Comma separated list of episode ids which you do not want to listen to';
-option 'dryrun!', 'Print to screen instead of doing changes';
+option 'list=i',  		'Set maxium returned episodes';
+option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
+option 'download=s', 	'Comma separated list og episode ids which is going ';
+option 'dryrun!', 		'Print to screen instead of doing changes';
 
 
  sub main {
@@ -36,11 +37,8 @@ option 'dryrun!', 'Print to screen instead of doing changes';
     #my $old_date = Mojo::Date->new('2019-06-30T23:59:59+01:00')->epoch;
     my $old_date = Mojo::Date->new('Mon, 23 Sep 2019 10:30:00 GMT')->epoch;
 
-	if ($self->reject) {
-		my @rejected = split (/\,/, $self->reject);
-		$self->rss->rejected_add(@rejected);
-		return $self->graceful_exit;
-	}
+
+	say "Update the database";
 
     my @rsses = ( 'https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
@@ -58,7 +56,7 @@ option 'dryrun!', 'Print to screen instead of doing changes';
     if ($self->list) {
     	$nore = $self->list;
     }
-    my %rejected = map{$_,1} @{$self->rss->rejected_read };
+    my %rejected = map{$_,1} @{$self->rss->handeled_read }; #get episodes that is either rejected or downloaded
 
     say Dumper \%rejected;
     for my $rss (@rsses) {
@@ -101,6 +99,26 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 			push @items, $item;
 	    }
     }
+    # update database
+	$self->rss->episodes_update(\@items);
+
+	if ($self->reject) {
+		my @rejected = split (/\,/, $self->reject);
+		$self->rss->rejected_add(@rejected);
+		return $self->gracefull_exit;
+	}
+	if ($self->download) {
+		my @downloaded = split (/\,/, $self->download);
+		my @downepisodes = @{ $self->rss->episodes_by_ids(@downloaded) };
+		for my $d(@downepisodes) {
+			my $cmd = 'wget '.$d->{url} ;
+			my $ret = eval {`$cmd`;1;} or die "$@;$!";
+			say $ret;
+			$self->rss->downloaded_set($d);
+		}
+		return $self->gracefull_exit;
+	}
+
     if ($self->list) {
 	    for my $item(sort {$a->{published}->epoch <=> $b->{published}->epoch}  @items[0 .. ($nore-1)]) {
 	    	say join(' ',$item->{id},$item->{published},$item->{feed});
@@ -108,17 +126,18 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 	    		say $item->{$key};
 	    	}
 	    	say '--';
-	    }
 
-    } else {
-	    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
-	    	say $item->{published}.'  '.$item->{feed};
-	    	for my $key(qw/title description url/) {
-	    		say $item->{$key};
-	    	}
-	    	say '--';
 	    }
+		$self->gracefull_exit;
 	}
+
+    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
+    	say $item->{published}.'  '.$item->{feed};
+    	for my $key(qw/title description url/) {
+    		say $item->{$key};
+    	}
+    	say '--';
+    }
 }
 
 __PACKAGE__->new(options_cfg=>{})->main();

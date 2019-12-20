@@ -4,7 +4,7 @@ use Mojo::SQLite;
 use Mojo::File 'path';
 use open ':encoding(UTF-8)';
 use Mojo::JSON 'to_json';
-
+#use Clone 'clone';
 
 
 =head1 NAME
@@ -80,11 +80,42 @@ sub _episode_write {
     my @keys = keys %$hash;
     my @values = values %$hash;
     my $res;
+    my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
+    say STDERR $query;
     eval {
-	    $res = $self->db->query('replace into episodes('.join(',',@keys).')', @values);1;
+	    $res = $self->db->query($query, @values);1;
 	} or  die "DB ERROR: $!   $@ ".$self->dbfile.' '.to_json $hash;
     return $res;
 }
+
+
+=head2 episodes_update
+
+
+
+=cut
+
+sub episodes_update {
+    my $self = shift;
+    my $hashes =shift;
+	my $res;
+    for my $hash(@$hashes) {
+	    my @keys = keys %$hash;
+	    my @values = values %$hash;
+	    if (grep {$_='id'} @keys) {
+	    	my $old_hash = $self->episodes_by_ids($hash->{id})->[0];
+	    	@$old_hash{keys %$hash} = values %$hash;
+	    	$hash = $old_hash;
+	    }
+	    my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
+	    say STDERR $query;
+	    eval {
+		    $res .= $self->db->query($query, @values);1;
+		} or  die "DB ERROR: $!   $@ ".$self->dbfile.' '.to_json $hash;
+	}
+    return $res;
+}
+
 
 =head2 rejected_add
 
@@ -100,17 +131,33 @@ sub rejected_add {
 	}
 }
 
-=head2 rejected_read
+=head2 handeled_read
 
-Return a list of rejected ids
+Return a list of rejected ids or downloaded ids.
 
 =cut
 
-sub rejected_read {
+sub handeled_read {
 	my $self = shift;
-
-	my @t = map{$_->{id}}  @{ $self->_query(q|select id from episodes where is_rejected = 1|)};
+	my @t = map{$_->{id}}  @{ $self->_query(q|select id from episodes where is_rejected = 1 or is_downloaded = 1|)};
 	return \@t;
 }
 1;
 
+=head2 episodes_by_ids
+
+Get all episodes by id
+
+=cut
+
+sub episodes_by_ids {
+	my $self = shift;
+	my @ids = @_;
+	return if ! @ids;
+	return $self->_query('select * from episodes where id in ('.join(',',map {'?'}@ids).')',@ids);
+}
+
+sub downloaded_set {
+	my $self = shift;
+	my @ids = @_;
+}
