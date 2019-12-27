@@ -22,6 +22,7 @@ List 20 episodes. May mark some as downloaded or rejecteded.
 
 =cut
 
+option 'list=i',   'List the given best episodes. Default 7',{default=>7};
 option 'dryrun!', 'Print to screen instead of doing changes';
 
 
@@ -68,13 +69,24 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 			push @items, $item;
 	    }
     }
-    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
-    	say $item->{published}.'  '.$item->{feed};
-    	for my $key(qw/title description url/) {
-    		say $item->{$key};
-    	}
-    	say '--';
-    }
+    if ($self->list) {
+	    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
+	    	say $item->{published}.'  '.$item->{feed};
+	    	for my $key(qw/title description url/) {
+	    		say $item->{$key};
+	    	}
+	    	say '--';
+	    }
+
+    } else {
+	    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
+	    	say $item->{published}.'  '.$item->{feed};
+	    	for my $key(qw/title description url/) {
+	    		say $item->{$key};
+	    	}
+	    	say '--';
+	    }
+	}
 }
 
-__PACKAGE__->new(options_cfg=>{extra=>1})->main();
+__PACKAGE__->new(options_cfg=>{})->main();
