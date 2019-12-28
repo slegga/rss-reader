@@ -28,19 +28,7 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
-
-
- sub main {
-    my $self = shift;
-    my @e = @{ $self->extra_options };
-    my @unwanted = qw/antipanel reprise trær plante/;
-    #my $old_date = Mojo::Date->new('2019-06-30T23:59:59+01:00')->epoch;
-    my $old_date = Mojo::Date->new('Mon, 23 Sep 2019 10:30:00 GMT')->epoch;
-
-
-	say "Update the database";
-
-    my @rsses = ( 'https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
+has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
     			, 'https://rss.acast.com/teknopreik'
     			, 'https://acast.aftenposten.no/rss/forklart'
@@ -49,28 +37,34 @@ option 'download=s', 	'Comma separated list og episode ids which is going ';
     			, 'https://acast.aftenposten.no/rss/sprekpodden'
     			, 'http://api.vg.no/podcast/e24-podden.rss'
     			, 'https://www.tu.no/emne/podkast'
-    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
-    			);
-    my @items;
-    my $nore = 300; # number of returned episodes
-    if ($self->list) {
-    	$nore = $self->list;
-    }
-    my %rejected = map{$_,1} @{$self->rss->handeled_read }; #get episodes that is either rejected or downloaded
+    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431']};
+has    'rejected';
+has    nore    => 300;
+has states_integer => sub{$_[0]->rss->states_integer//{retrieve_episodes_epoch=>1000}};
+#
+# SUBS
+#
 
-    say Dumper \%rejected;
-    for my $rss (@rsses) {
+sub get_new_episodes {
+	my $self = shift;
+    my @unwanted = qw/antipanel reprise trær plante/;
+    my %rejected = map{$_,1} @{$self->rss->episodes_read_handeled }; #get episodes that is either rejected or downloaded
+	my $now = time();
+    my @items;
+
+    say Dumper $self->rejected;
+    for my $rss (@{$self->rsses}) {
     	my $feed = Mojo::Feed->new(
     		url => $rss);
 	    ITEM:
-	    for my $raw($feed->items->head($nore)->each) {
+	    for my $raw($feed->items->head($self->nore)->each) {
 	    	next if !$raw;
     		my $item;
 	    	if (! $raw->can('published')) {
 	    		p $raw;
 	    		next;
 	    	}
-	    	next if $old_date > Mojo::Date->new($raw->published)->epoch;
+	    	next if $self->states_integer->{'retrieve_episodes_epoch'} > Mojo::Date->new($raw->published)->epoch;
 	 		$item->{feed} = $feed->title;
 
 	      	my $title = $raw->title;
@@ -100,15 +94,34 @@ option 'download=s', 	'Comma separated list og episode ids which is going ';
     }
     # update database
 	$self->rss->episodes_update(\@items);
+	$self->states_integer($self->rss->states_integer({retrieve_episodes_epoch => $now}));
+	return \@items;
+}
+
+ sub main {
+    my $self = shift;
+    my @e = @{ $self->extra_options };
+
+
+	say "Update the database";
+
+    my @rsses = (
+    			);
+
+    if ($self->list) {
+    	$self->nore(scalar $self->list);
+    }
+
+ 	$self->get_new_episodes if $self->states_integer->{retrieve_episodes_epoch}< time - 7*24*60*60; # update db
 
 	if ($self->reject) {
 		my @rejected = split (/\,/, $self->reject);
-		$self->rss->rejected_add(@rejected);
+		$self->rss->episodes_rejected_add(@rejected);
 		return $self->gracefull_exit;
 	}
 	if ($self->download) {
 		my @downloaded = split (/\,/, $self->download);
-		my @downepisodes = @{ $self->rss->episodes_by_ids(@downloaded) };
+		my @downepisodes = @{ $self->rss->episodes_read_by_ids(@downloaded) };
 		for my $d(@downepisodes) {
 			my $cmd = 'wget '.$d->{url} ;
 			my $ret = eval {`$cmd`;1;} or die "$@;$!";
@@ -117,9 +130,9 @@ option 'download=s', 	'Comma separated list og episode ids which is going ';
 		}
 		return $self->gracefull_exit;
 	}
-
     if ($self->list) {
-	    for my $item(sort {$a->{published_epoch} <=> $b->{published_epoch}}  @items[0 .. ($nore-1)]) {
+    	my @items = grep{exists $_->{title} && $_->{title}} @{ $self->rss->episodes_read_all };
+	    for my $item(sort {$b->{published_epoch} <=> $a->{published_epoch}}  @items[0 .. ($self->list -1)]) {
 	    	say join(' ',$item->{id},Mojo::Date->new->epoch($item->{published_epoch})->to_string,$item->{feed});
 	    	for my $key(qw/title description url/) {
 	    		say $item->{$key};
@@ -129,13 +142,14 @@ option 'download=s', 	'Comma separated list og episode ids which is going ';
 		return $self->gracefull_exit;
 	}
 
-    for my $item(sort {$b->{published_epoch} <=> $a->{published_epoch}}  @items) {
-    	say $item->{published_epoch}.'  '.$item->{feed};
-    	for my $key(qw/title description url/) {
-    		say $item->{$key};
-    	}
-    	say '--';
-    }
+#    for my $item(sort {$b->{published_epoch} <=> $a->{published_epoch}}  @items) {
+#    	say $item->{published_epoch}.'  '.$item->{feed};
+#    	for my $key(qw/title description url/) {
+#    		say $item->{$key};
+#    	}
+#    	say '--';
+#    }
+	die "Must use options to do something";
 }
 
 __PACKAGE__->new(options_cfg=>{})->main();

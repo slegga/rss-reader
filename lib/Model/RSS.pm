@@ -91,7 +91,7 @@ sub _episode_write {
 
 =head2 episodes_update
 
-
+Update episodes with given hashes ref.
 
 =cut
 
@@ -103,7 +103,7 @@ sub episodes_update {
 	    my @keys = keys %$hash;
 	    my @values = values %$hash;
 	    if (grep {$_ eq 'id'} @keys) {
-	    	my $old_hash = $self->episodes_by_ids($hash->{id})->[0];
+	    	my $old_hash = $self->episodes_read_by_ids($hash->{id})->[0];
 	    	@$old_hash{keys %$hash} = values %$hash;
 	    	$hash = $old_hash;
 	    }
@@ -117,13 +117,13 @@ sub episodes_update {
 }
 
 
-=head2 rejected_add
+=head2 episodes_rejected_add
 
 Add a list of rejected episodes
 
 =cut
 
-sub rejected_add {
+sub episodes_rejected_add {
 	my $self = shift;
 	my @rejected = @_;
 	for my $r(@rejected) {
@@ -131,26 +131,37 @@ sub rejected_add {
 	}
 }
 
-=head2 handeled_read
+=head2 episodes_read_handeled
 
 Return a list of rejected ids or downloaded ids.
 
 =cut
 
-sub handeled_read {
+sub episodes_read_handeled {
 	my $self = shift;
 	my @t = map{$_->{id}}  @{ $self->_query(q|select id from episodes where is_rejected = 1 or is_downloaded = 1|)};
 	return \@t;
 }
-1;
 
-=head2 episodes_by_ids
+=head2 episodes_read_all
 
-Get all episodes by id
+Return all episodes
 
 =cut
 
-sub episodes_by_ids {
+sub episodes_read_all {
+	my $self = shift;
+	return $self->_query('select * from episodes');
+}
+
+
+=head2 episodes_read_by_ids
+
+Get episodes by ids
+
+=cut
+
+sub episodes_read_by_ids {
 	my $self = shift;
 	my @ids = @_;
 	return if ! @ids;
@@ -163,7 +174,45 @@ Register that episode is downloaded.
 
 =cut
 
+
+
 sub downloaded_set {
 	my $self = shift;
 	my @ids = @_;
 }
+
+=head2 states_integer
+
+Handle states_integers. Return always all.
+
+=cut
+
+sub states_integer {
+	my $self = shift;
+	if (ref $_[0] eq 'HASH') {
+		for my $name(keys %{$_[0]}) {
+		    my $res;
+		    my $query = 'replace into states_integer(name,value) VALUES(?,?)';
+		#    say STDERR $query;
+		    eval {
+			    $res = $self->db->query($query, $name, $_[0]->{$name});1;
+			} or  die "DB ERROR: $!   $@ ".$self->dbfile.' '.to_json $_[0];
+		    return $res;
+
+		}
+	} elsif(@_) {
+		die "second option must be a hash ref";
+	}
+	my $t = $self->_query('select name, value from states_integer');
+	my %return;
+	for my $r(@$t) {
+		$return{$r->{name}} = $r->{value};
+	}
+	return \%return;
+
+}
+
+
+
+
+1;
