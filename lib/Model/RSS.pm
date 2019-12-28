@@ -31,7 +31,7 @@ Default to a new Mojo::SQLite::Database object
 
 =cut
 
-has dbfile => $ENV{HOME}.'/etc/RSS.db';
+has dbfile => 'data/RSS.db';
 has sqlite => sub {
 	my $self = shift;
 	if ( -f $self->dbfile) {
@@ -81,7 +81,7 @@ sub _episode_write {
     my @values = values %$hash;
     my $res;
     my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
-    say STDERR $query;
+#    say STDERR $query;
     eval {
 	    $res = $self->db->query($query, @values);1;
 	} or  die "DB ERROR: $!   $@ ".$self->dbfile.' '.to_json $hash;
@@ -108,7 +108,7 @@ sub episodes_update {
 	    	$hash = $old_hash;
 	    }
 	    my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
-	    say STDERR $query;
+#	    say STDERR $query;
 	    eval {
 		    $res .= $self->db->query($query, @values);1;
 		} or  die "DB ERROR: $!   $@ ".$self->dbfile.' '.to_json $hash;

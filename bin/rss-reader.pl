@@ -25,7 +25,7 @@ List 20 episodes. May mark some as downloaded or rejecteded.
 
 option 'list=i',   'List the given best episodes. Default 7',{default=>7};
 option 'dryrun!', 'Print to screen instead of doing changes';
-has 'rss' => sub{Model::RSS->new};
+has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
 
@@ -94,8 +94,7 @@ option 'download=s', 	'Comma separated list og episode ids which is going ';
 			$url =~ s/.*url=\"//;
 			$url =~ s/\".*//;
 			$item->{url} =  "wget $url";
-
-			$item->{published} =  Mojo::Date->new($raw->published);
+			$item->{published_epoch} = ref $raw->published ?  $raw->published->epoch : $raw->published ;
 			push @items, $item;
 	    }
     }
@@ -120,18 +119,18 @@ option 'download=s', 	'Comma separated list og episode ids which is going ';
 	}
 
     if ($self->list) {
-	    for my $item(sort {$a->{published}->epoch <=> $b->{published}->epoch}  @items[0 .. ($nore-1)]) {
-	    	say join(' ',$item->{id},$item->{published},$item->{feed});
+	    for my $item(sort {$a->{published_epoch} <=> $b->{published_epoch}}  @items[0 .. ($nore-1)]) {
+	    	say join(' ',$item->{id},Mojo::Date->new->epoch($item->{published_epoch})->to_string,$item->{feed});
 	    	for my $key(qw/title description url/) {
 	    		say $item->{$key};
 	    	}
 	    	say '--';
 	    }
-		$self->gracefull_exit;
+		return $self->gracefull_exit;
 	}
 
-    for my $item(sort {$b->{published}->epoch <=> $a->{published}->epoch}  @items) {
-    	say $item->{published}.'  '.$item->{feed};
+    for my $item(sort {$b->{published_epoch} <=> $a->{published_epoch}}  @items) {
+    	say $item->{published_epoch}.'  '.$item->{feed};
     	for my $key(qw/title description url/) {
     		say $item->{$key};
     	}
