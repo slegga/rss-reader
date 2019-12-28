@@ -11,6 +11,7 @@ use Mojo::Feed;
 use Data::Dumper;
 use Data::Printer;
 use Model::RSS;
+use Mojo::File 'path';
 #use Carp::Always;
 
 =head1 NAME
@@ -28,6 +29,7 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
+option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>"/media/$ENV{USER}/USB\\ DISK/"};
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
     			, 'https://rss.acast.com/teknopreik'
@@ -40,13 +42,16 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431']};
 has    'rejected';
 has    nore    => 300;
+
 has states_integer => sub{$_[0]->rss->states_integer//{retrieve_episodes_epoch=>1000}};
+
 #
 # SUBS
 #
 
 sub get_new_episodes {
 	my $self = shift;
+	say "Update the database";
     my @unwanted = qw/antipanel reprise trær plante/;
     my %rejected = map{$_,1} @{$self->rss->episodes_read_handeled }; #get episodes that is either rejected or downloaded
 	my $now = time();
@@ -103,7 +108,6 @@ sub get_new_episodes {
     my @e = @{ $self->extra_options };
 
 
-	say "Update the database";
 
     my @rsses = (
     			);
@@ -123,16 +127,30 @@ sub get_new_episodes {
 		my @downloaded = split (/\,/, $self->download);
 		my @downepisodes = @{ $self->rss->episodes_read_by_ids(@downloaded) };
 		for my $d(@downepisodes) {
-			my $cmd = 'wget '.$d->{url} ;
+			my $cmd = 'wget '.$d->{url}.' -P '.$self->downloaddir ;
 			my $ret = eval {`$cmd`;1;} or die "$@;$!";
 			say $ret;
-			$self->rss->downloaded_set($d);
+			$self->rss->episodes_set_downloaded($d->{id});
 		}
+
+		# rename duplicates
+		my $downloadfiles = path($self->downloaddir)->list;
+		for my $d(@{$downloadfiles->to_array}) {
+			if($d->basename =~/^(.+)\.mp3\.(\d+)$/i) {
+				my $newname = "$1.$2.mp3";
+				if (-e $self->downloaddir.'/'.$newname) {
+					$newname = "$1.$2.".int(rand(100000)).".mp3";
+				}
+				$d->move_to($newname);
+			}
+		}
+
 		return $self->gracefull_exit;
 	}
+
     if ($self->list) {
-    	my @items = grep{exists $_->{title} && $_->{title}} @{ $self->rss->episodes_read_all };
-	    for my $item(sort {$b->{published_epoch} <=> $a->{published_epoch}}  @items[0 .. ($self->list -1)]) {
+    	my @items = sort {$b->{published_epoch} <=> $a->{published_epoch}} grep{exists $_->{title} && $_->{title}} @{ $self->rss->episodes_read_all };
+	    for my $item(  @items[0 .. ($self->list -1)]) {
 	    	say join(' ',$item->{id},Mojo::Date->new->epoch($item->{published_epoch})->to_string,$item->{feed});
 	    	for my $key(qw/title description url/) {
 	    		say $item->{$key};

@@ -77,10 +77,13 @@ sub _query {
 sub _episode_write {
     my $self = shift;
     my $hash =shift;
-    my @keys = keys %$hash;
-    my @values = values %$hash;
     my $res;
-    my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
+    die "Missing id as key" if ! exsists hash->{id};
+    my $old_row = $self->_query('select * from episodes where id = ?',$hash->{id});
+    ...; # merge old_row into $hash to save old values
+    my @keys = keys %$hash;
+        my @values = values %$hash;
+        my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
 #    say STDERR $query;
     eval {
 	    $res = $self->db->query($query, @values);1;
@@ -168,7 +171,7 @@ sub episodes_read_by_ids {
 	return $self->_query('select * from episodes where id in ('.join(',',map {'?'}@ids).')',@ids);
 }
 
-=head2 downloaded_set
+=head2 episodes_set_downloaded
 
 Register that episode is downloaded.
 
@@ -176,9 +179,12 @@ Register that episode is downloaded.
 
 
 
-sub downloaded_set {
+sub episodes_set_downloaded {
 	my $self = shift;
 	my @ids = @_;
+	for my $r(@ids) {
+		$self->_episode_write({id=>$r,is_downloaded=>1});
+	}
 }
 
 =head2 states_integer
