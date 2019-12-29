@@ -78,12 +78,20 @@ sub _episode_write {
     my $self = shift;
     my $hash =shift;
     my $res;
-    die "Missing id as key" if ! exsists hash->{id};
+    die "Missing id as key" if ! exists $hash->{id};
     my $old_row = $self->_query('select * from episodes where id = ?',$hash->{id});
-    ...; # merge old_row into $hash to save old values
+    if ($old_row) {
+    	$old_row=$old_row->[0];
+    	for my $key(keys %$old_row) {
+    		if (! exists $hash->{$key}|| ! defined $hash->{$key} ||! length($hash->{$key})) {
+    			$hash->{$key} = $old_row->{$key};
+    		}
+    	}
+    }
+
     my @keys = keys %$hash;
-        my @values = values %$hash;
-        my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
+    my @values = values %$hash;
+    my $query = 'replace into episodes('.join(',',@keys).') VALUES('.join(',',map{'?'}@values).')';
 #    say STDERR $query;
     eval {
 	    $res = $self->db->query($query, @values);1;

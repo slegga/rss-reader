@@ -30,6 +30,7 @@ has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
 option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>"/media/$ENV{USER}/USB\\ DISK/"};
+option 'update!',       'Force full update of database based on feeds';
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
     			, 'https://rss.acast.com/teknopreik'
@@ -115,8 +116,14 @@ sub get_new_episodes {
     if ($self->list) {
     	$self->nore(scalar $self->list);
     }
+	if ($self->update){
+		$self->nore(300);
+		my $si = $self->states_integer;
+		$si->{retrieve_episodes_epoch} = time - 4 * 30 * 24 * 60 * 60;
+		$self->states_integer($si);
+	}
 
- 	$self->get_new_episodes if $self->states_integer->{retrieve_episodes_epoch}< time - 7*24*60*60; # update db
+ 	$self->get_new_episodes if $self->states_integer->{retrieve_episodes_epoch}< time - 7*24*60*60 || $self->update; # update db
 
 	if ($self->reject) {
 		my @rejected = split (/\,/, $self->reject);
@@ -134,14 +141,19 @@ sub get_new_episodes {
 		}
 
 		# rename duplicates
-		my $downloadfiles = path($self->downloaddir)->list;
+		my $path = $self->downloaddir;
+		$path =~ s/\\//g;
+		$path = path($path);
+		my $downloadfiles = $path->list;
 		for my $d(@{$downloadfiles->to_array}) {
-			if($d->basename =~/^(.+)\.mp3\.(\d+)$/i) {
+			my $basename = $d->basename;
+			if($basename =~/^(.+)\.mp3\.(\d+)$/i) {
 				my $newname = "$1.$2.mp3";
-				if (-e $self->downloaddir.'/'.$newname) {
+				if (-e $path->child($newname)->to_string) {
 					$newname = "$1.$2.".int(rand(100000)).".mp3";
 				}
-				$d->move_to($newname);
+				say "rename $basename to $newname";
+				$d->move_to($path->child($newname));
 			}
 		}
 
@@ -149,7 +161,7 @@ sub get_new_episodes {
 	}
 
     if ($self->list) {
-    	my @items = sort {$b->{published_epoch} <=> $a->{published_epoch}} grep{exists $_->{title} && $_->{title}} @{ $self->rss->episodes_read_all };
+    	my @items = sort {$b->{published_epoch} <=> $a->{published_epoch}} grep{exists $_->{title} && $_->{title} && ! $_->{is_rejected} && ! $_->{is_downloaded}} @{ $self->rss->episodes_read_all };
 	    for my $item(  @items[0 .. ($self->list -1)]) {
 	    	say join(' ',$item->{id},Mojo::Date->new->epoch($item->{published_epoch})->to_string,$item->{feed});
 	    	for my $key(qw/title description url/) {
