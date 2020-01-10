@@ -40,7 +40,8 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'https://acast.aftenposten.no/rss/sprekpodden'
     			, 'http://api.vg.no/podcast/e24-podden.rss'
     			, 'https://www.tu.no/emne/podkast'
-    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431']};
+    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
+    			, 'https://podcasts.apple.com/no/podcast/dobbeltklikk/id1493954048?l=nb']};
 has    'rejected';
 has    nore    => 300;
 
