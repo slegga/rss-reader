@@ -41,7 +41,7 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'http://api.vg.no/podcast/e24-podden.rss'
     			, 'https://www.tu.no/emne/podkast'
     			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
-    			, 'https://podcasts.apple.com/no/podcast/dobbeltklikk/id1493954048?l=nb']};
+    			, 'https://feed.pippa.io/public/shows/dobbeltklikk']};
 has    'rejected';
 has    nore    => 300;
 
