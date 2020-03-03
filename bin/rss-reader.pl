@@ -31,6 +31,7 @@ option 'reject=s', 		'Comma separated list of episode ids which you do not want 
 option 'download=s', 	'Comma separated list og episode ids which is going ';
 option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>"/media/$ENV{USER}/USB\\ DISK/"};
 option 'update!',       'Force full update of database based on feeds';
+#has    'downloadedrss' => sub {{vettogvitenskap =>'http://vettogvitenskap.libsyn.com/rss'}};
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
     			, 'https://rss.acast.com/teknopreik'
@@ -41,7 +42,10 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'http://api.vg.no/podcast/e24-podden.rss'
     			, 'https://www.tu.no/emne/podkast'
     			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
-    			, 'https://feed.pippa.io/public/shows/dobbeltklikk']};
+    			, 'https://feed.pippa.io/public/shows/dobbeltklikk'
+    			, 'http://vettogvitenskap.libsyn.com/rss'
+    			#, 'file:///tmp/vettogvitenskap.rss'
+    			]};
 has    'rejected';
 has    nore    => 300;
 
@@ -58,6 +62,11 @@ sub get_new_episodes {
     my %rejected = map{$_,1} @{$self->rss->episodes_read_handeled }; #get episodes that is either rejected or downloaded
 	my $now = time();
     my @items;
+ #   for my $key (keys %{$self->downloadedrss}) {
+#		my $cmd = 'wget '.$self->downloadedrss->{$key}.' -O /tmp/'.$key.'.rss' ;
+#		my $ret = eval {`$cmd`;1;} or die "$@;$!";
+#		say $ret;
+#    }
 
     say Dumper $self->rejected;
     for my $rss (@{$self->rsses}) {
