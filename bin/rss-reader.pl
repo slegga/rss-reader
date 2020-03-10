@@ -103,7 +103,7 @@ sub get_new_episodes {
 
 			$url =~ s/.*url=\"//;
 			$url =~ s/\".*//;
-			$item->{url} =  "wget $url";
+			$item->{url} =  "$url";
 			$item->{published_epoch} = ref $raw->published ?  $raw->published->epoch : $raw->published ;
 			push @items, $item;
 	    }
@@ -145,7 +145,8 @@ sub get_new_episodes {
 		my @downepisodes = @{ $self->rss->episodes_read_by_ids(@downloaded) };
 		for my $d(@downepisodes) {
 			my $cmd = 'wget '.$d->{url}.' -P '.$self->downloaddir ;
-			my $ret = eval {`$cmd`;1;} or die "$@;$!";
+			say $cmd;
+			my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
 			say $ret;
 			$self->rss->episodes_set_downloaded($d->{id});
 		}
