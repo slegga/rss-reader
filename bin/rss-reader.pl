@@ -62,11 +62,6 @@ sub get_new_episodes {
     my %rejected = map{$_,1} @{$self->rss->episodes_read_handeled }; #get episodes that is either rejected or downloaded
 	my $now = time();
     my @items;
- #   for my $key (keys %{$self->downloadedrss}) {
-#		my $cmd = 'wget '.$self->downloadedrss->{$key}.' -O /tmp/'.$key.'.rss' ;
-#		my $ret = eval {`$cmd`;1;} or die "$@;$!";
-#		say $ret;
-#    }
 
     say Dumper $self->rejected;
     for my $rss (@{$self->rsses}) {
@@ -143,13 +138,13 @@ sub get_new_episodes {
 	if ($self->download) {
 		my @downloaded = split (/\,/, $self->download);
 		my @downepisodes = @{ $self->rss->episodes_read_by_ids(@downloaded) };
-		for my $d(@downepisodes) {
-			my $cmd = 'wget '.$d->{url}.' -P '.$self->downloaddir ;
-			say $cmd;
-			my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
-			say $ret;
-			$self->rss->episodes_set_downloaded($d->{id});
-		}
+		#for my $d(@downepisodes) {
+		my $cmd = 'wget -P '.$self->downloaddir.' '.join(' ',map {$_->{url}} @downepisodes) ;
+		say $cmd;
+		my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
+		say $ret;
+		$self->rss->episodes_set_downloaded($_->{id}) for @downepisodes;
+	#	}
 
 		# rename duplicates
 		my $path = $self->downloaddir;
