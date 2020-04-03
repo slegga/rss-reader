@@ -139,7 +139,7 @@ sub get_new_episodes {
 		my @downloaded = split (/\,/, $self->download);
 		my @downepisodes = @{ $self->rss->episodes_read_by_ids(@downloaded) };
 		#for my $d(@downepisodes) {
-		my $cmd = 'wget -P '.$self->downloaddir.' '.join(' ',map {$_->{url}} @downepisodes) ;
+		my $cmd = 'wget -P '.$self->downloaddir.' '.join(' ',map{my $x=$_;$x=~s/\?.*//;$x} map {$_->{url}} @downepisodes) ;
 		say $cmd;
 		my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
 		say $ret;
