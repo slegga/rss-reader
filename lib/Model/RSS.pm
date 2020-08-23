@@ -11,6 +11,13 @@ use Mojo::JSON 'to_json';
 
 Model::RSS.pm - Handle comunication with DB.
 
+=head1 SYNOPSIS
+
+    use Model::RSS;
+    use Data::Dumper;
+    my $x = Model::RSS->new;
+    say Dumper $x->episodes_read_all();
+
 =head1 DESCRIPTION
 
 Handle all communication with the database.
