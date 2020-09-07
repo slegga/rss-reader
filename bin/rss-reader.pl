@@ -44,6 +44,7 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
     			, 'https://feed.pippa.io/public/shows/dobbeltklikk'
     			, 'http://vettogvitenskap.libsyn.com/rss'
+    			, 'https://rss.podplaystudio.com/608.xml'
     			#, 'file:///tmp/vettogvitenskap.rss'
     			]};
 has    'rejected';
