@@ -34,19 +34,18 @@ option 'update!',       'Force full update of database based on feeds';
 #has    'downloadedrss' => sub {{vettogvitenskap =>'http://vettogvitenskap.libsyn.com/rss'}};
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
     			, 'https://podkast.nrk.no/program/abels_taarn.rss'
-    			, 'https://rss.acast.com/teknopreik'
-    			, 'https://acast.aftenposten.no/rss/forklart'
+#    			, 'https://rss.acast.com/teknopreik'
+#    			, 'https://acast.aftenposten.no/rss/forklart'
     			, 'https://acast.aftenposten.no/rss/teknologimagasinet'
     			, 'https://acast.aftenposten.no/rss/foreldrekoden'
     			, 'https://acast.aftenposten.no/rss/sprekpodden'
     			, 'http://api.vg.no/podcast/e24-podden.rss'
     			, 'https://www.tu.no/emne/podkast'
-    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
+#    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
     			, 'https://feed.pippa.io/public/shows/dobbeltklikk'
     			, 'http://vettogvitenskap.libsyn.com/rss'
     			, 'https://rss.podplaystudio.com/608.xml'
     			, 'https://feeds.acast.com/public/shows/30-minutter-inn-i-fremtiden'
-    			#, 'file:///tmp/vettogvitenskap.rss'
     			]};
 has    'rejected';
 has    nore    => 300;
@@ -68,7 +67,8 @@ sub get_new_episodes {
     say Dumper $self->rejected;
     for my $rss (@{$self->rsses}) {
     	my $feed = Mojo::Feed->new(
-    		url => $rss);
+    		url => Mojo::URL->new($rss));
+        say $rss;
 	    ITEM:
 	    for my $raw($feed->items->head($self->nore)->each) {
 	    	next if !$raw;
