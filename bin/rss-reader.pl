@@ -77,7 +77,12 @@ sub get_new_episodes {
 	    		p $raw;
 	    		next;
 	    	}
-	    	next if $self->states_integer->{'retrieve_episodes_epoch'} > Mojo::Date->new($raw->published)->epoch;
+	    	if (! $raw->published) {
+	    	    warn "Missing published";
+	    	    say Dumper $raw;
+	    	    next;
+	    	}
+	    	next if $self->states_integer->{'retrieve_episodes_epoch'} && $self->states_integer->{'retrieve_episodes_epoch'} > Mojo::Date->new($raw->published)->epoch;
 	 		$item->{feed} = $feed->title;
 
 	      	my $title = $raw->title;
