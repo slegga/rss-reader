@@ -39,7 +39,7 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'https://acast.aftenposten.no/rss/teknologimagasinet'
     			, 'https://acast.aftenposten.no/rss/foreldrekoden'
     			, 'https://acast.aftenposten.no/rss/sprekpodden'
-    			, 'http://api.vg.no/podcast/e24-podden.rss'
+#    			, 'http://api.vg.no/podcast/e24-podden.rss'
     			, 'https://www.tu.no/emne/podkast'
 #    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
     			, 'https://feed.pippa.io/public/shows/dobbeltklikk'
