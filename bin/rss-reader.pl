@@ -144,9 +144,10 @@ sub get_new_episodes {
 	}
 	if ($self->download) {
 		my @downloaded = split (/\,/, $self->download);
-		my @downepisodes = @{ $self->rss->episodes_read_by_ids(@downloaded) };
+		my @downepisodes = map {my $x =$_;$x=~s/wget //;$x} @{ $self->rss->episodes_read_by_ids(@downloaded) };
+#warn Dumper \@downepisodes;
 		#for my $d(@downepisodes) {
-		my $cmd = 'wget -P '.$self->downloaddir.' '.join(' ',map{my $x=$_;$x=~s/\?.*//;$x} map {$_->{url}} @downepisodes) ;
+		my $cmd = 'wget -P '.$self->downloaddir.' '.join(' ',map {my $x =$_;$x=~s/wget //;$x} map{my $x=$_;$x=~s/\?.*//;$x} map {$_->{url}} @downepisodes) ;
 		say $cmd;
 		my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
 		say $ret;
