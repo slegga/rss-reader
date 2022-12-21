@@ -46,6 +46,7 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			, 'http://vettogvitenskap.libsyn.com/rss'
     			, 'https://rss.podplaystudio.com/608.xml'
     			, 'https://feeds.acast.com/public/shows/30-minutter-inn-i-fremtiden'
+    			, 'https://podkast.nrk.no/program/ukjent.rss'
     			]};
 has    'rejected';
 has    nore    => 300;
