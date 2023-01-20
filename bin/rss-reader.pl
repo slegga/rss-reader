@@ -187,13 +187,6 @@ sub get_new_episodes {
 		return $self->gracefull_exit;
 	}
 
-#    for my $item(sort {$b->{published_epoch} <=> $a->{published_epoch}}  @items) {
-#    	say $item->{published_epoch}.'  '.$item->{feed};
-#    	for my $key(qw/title description url/) {
-#    		say $item->{$key};
-#    	}
-#    	say '--';
-#    }
 	die "Must use options to do something";
 }
 
