@@ -29,7 +29,9 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
-option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>(-d "/media/$ENV{USER}/USB\\ DISK/" ? "/media/$ENV{USER}/USB\\ DISK/" : "/Volumes/USB\\ DISK/" )};
+option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>(-e "/media/$ENV{USER}/USB\ DISK/" ? "/media/$ENV{USER}/USB\\ DISK/" : (
+    -e "/Volumes/USB\ DISK/" ?  "/Volumes/USB\\ DISK/" :die "/media/$ENV{USER}/USB\ DISK/ or /Volumes/USB\ DISK/ not found"
+    ) )};
 option 'update!',       'Force full update of database based on feeds';
 #has    'downloadedrss' => sub {{vettogvitenskap =>'http://vettogvitenskap.libsyn.com/rss'}};
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
