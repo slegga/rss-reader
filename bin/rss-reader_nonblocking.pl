@@ -222,6 +222,10 @@ sub get_new_episodes {
 		$path = path($path);
 		my $downloadfiles = $path->list;
 		for my $d(@{$downloadfiles->to_array}) {
+		    if (-f "$d" && ! -s "$d") {
+		        my $size = -s "$d";
+		        die "File size for $d is $size. Media is probably full."
+		    }
 			my $basename = $d->basename;
 			if($basename =~/^(.+)\.mp3\.(\d+)$/i) {
 				my $newname = "$1.$2.mp3";
