@@ -4,7 +4,7 @@ use FindBin;
 use lib "$FindBin::Bin/../../utilities-perl/lib";
 use SH::UseLib;
 use SH::ScriptX;
-use Mojo::Base 'SH::ScriptX',-signatures;
+use Mojo::Base -signatures,'SH::ScriptX';
 use utf8;
 use open ':encoding(UTF-8)';
 use Mojo::Feed;
@@ -12,10 +12,6 @@ use Data::Dumper;
 use Data::Printer;
 use Model::RSS;
 use Mojo::File 'path';
-use Mojo::Promise;
-use Clone 'clone';
-# use XML::DOM::Parser;
-use XML::DOM;
 #use Carp::Always;
 
 =head1 NAME
@@ -33,7 +29,9 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
-option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>"/media/$ENV{USER}/USB\\ DISK/"};
+#option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>(-e "/media/$ENV{USER}/USB\ DISK/" ? "/media/$ENV{USER}/USB\\ DISK/" : (
+#    -e "/Volumes/USB\ DISK/" ?  "/Volumes/USB\\ DISK/" :die "/media/$ENV{USER}/USB\ DISK/ or /Volumes/USB\ DISK/ not found"
+#    ) )};
 option 'update!',       'Force full update of database based on feeds';
 #has    'downloadedrss' => sub {{vettogvitenskap =>'http://vettogvitenskap.libsyn.com/rss'}};
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
@@ -54,7 +52,13 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			]};
 has    'rejected';
 has    nore    => 300;
-
+has configfile =>($ENV{CONFIG_DIR}||$ENV{HOME}.'/etc').'/rss-reader.yml';
+has config => sub { YAML::Tiny::LoadFile(shift->configfile) };
+has downloaddir => sub ($self) {
+    my $return =  $self->config->downloaddir;
+    if(! $return) {die "Missing config downloaddir in file ".$self->configfile};
+    return $return
+};
 has states_integer => sub{$_[0]->rss->states_integer//{retrieve_episodes_epoch=>1000}};
 
 #
@@ -70,81 +74,22 @@ sub get_new_episodes {
     my @items;
 
     say Dumper $self->rejected;
-    my $main_promise=Mojo::Promise->new;
-    my $ioloop = $main_promise->ioloop;
-    my $subprocess = $ioloop->subprocess;
-    my @feed_p;
     for my $rss (@{$self->rsses}) {
-        push @feed_p, $subprocess->run_p(
-            sub {
-    	        my $feed = Mojo::Feed->new(
-    		    url => Mojo::URL->new($rss));
-                say $rss;
-                return $feed;
-            }
-        );
-    }
-#    p @feed_p;
-    my @feeds;
-    $main_promise->all(@feed_p)
-    ->then(sub(@r){@feeds =map{clone($_)} grep {$_} @r;
-    return @feeds;
-    }
-    )
-    ->catch(sub($err){
-        warn "Something went wrong: $err";
-    })
-    ->wait;
-
-#    say "2" . (ref $feeds[0][0]||'__EMPTY2__');
-
-#    p @feeds;
-
-    for my $feed(@feeds) {
-        say ref $feed;
-        next if ! $feed;
-        if ( ! ref $feed ) {
-            p $feed;
-            die "No ref";
-        }
-        if (ref $feed eq 'ARRAY') {
-            # say $feed->[0];
-        }
-        if ( ref $feed ne 'Mojo::Feed' ) {
-            say"ref is ". ref $feed;
-            say "array num of items " .scalar @$feed;
-            my $x = $feed->[0];
-            say"ref2 is ". ref $x;
-            if (! ref $feed->[0]) {
-                $feed = Mojo::Feed->new(body => $x);
-            } else {
-                die $feed;
-            }
-#            die "No items method";
-
-        }
-
-#        say ref $feed;
-#        p $feed;
-        my $parser = new XML::DOM::Parser;
+    	my $feed = Mojo::Feed->new(
+    		url => Mojo::URL->new($rss));
+        say $rss;
 	    ITEM:
 	    for my $raw($feed->items->head($self->nore)->each) {
 	    	next if !$raw;
     		my $item;
 	    	if (! $raw->can('published')) {
 	    		p $raw;
-	    		say STDERR  ref $raw;
 	    		next;
 	    	}
 	    	if (! $raw->published) {
 	    	    warn "Missing published";
-	    	    p $raw;
-	    	    my $doc = $parser->parse($raw->to_string);
-	    	    my $nodes = $doc->getElementsByTagName ("CODEBASE");
-	    	    my $n = $nodes->getLength;
-	    	    say "LENGTH $n";
-	    	    ...;
-
+	    	    say Dumper $raw;
+	    	    next;
 	    	}
 	    	next if $self->states_integer->{'retrieve_episodes_epoch'} && $self->states_integer->{'retrieve_episodes_epoch'} > Mojo::Date->new($raw->published)->epoch;
 	 		$item->{feed} = $feed->title;
@@ -214,7 +159,6 @@ sub get_new_episodes {
 		my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
 		say $ret;
 		$self->rss->episodes_set_downloaded($_->{id}) for @downepisodes;
-	#	}
 
 		# rename duplicates
 		my $path = $self->downloaddir;
