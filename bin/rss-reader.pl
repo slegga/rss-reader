@@ -4,7 +4,7 @@ use FindBin;
 use lib "$FindBin::Bin/../../utilities-perl/lib";
 use SH::UseLib;
 use SH::ScriptX;
-use Mojo::Base 'SH::ScriptX';
+use Mojo::Base -signatures,'SH::ScriptX';
 use utf8;
 use open ':encoding(UTF-8)';
 use Mojo::Feed;
@@ -29,9 +29,9 @@ option 'dryrun!', 'Print to screen instead of doing changes';
 has    'rss' => sub{Model::RSS->new};
 option 'reject=s', 		'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 	'Comma separated list og episode ids which is going ';
-option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>(-e "/media/$ENV{USER}/USB\ DISK/" ? "/media/$ENV{USER}/USB\\ DISK/" : (
-    -e "/Volumes/USB\ DISK/" ?  "/Volumes/USB\\ DISK/" :die "/media/$ENV{USER}/USB\ DISK/ or /Volumes/USB\ DISK/ not found"
-    ) )};
+#option 'downloaddir=s', 'Dir to download to. Default /media/$ENV{USER}/USB DISK',{default=>(-e "/media/$ENV{USER}/USB\ DISK/" ? "/media/$ENV{USER}/USB\\ DISK/" : (
+#    -e "/Volumes/USB\ DISK/" ?  "/Volumes/USB\\ DISK/" :die "/media/$ENV{USER}/USB\ DISK/ or /Volumes/USB\ DISK/ not found"
+#    ) )};
 option 'update!',       'Force full update of database based on feeds';
 #has    'downloadedrss' => sub {{vettogvitenskap =>'http://vettogvitenskap.libsyn.com/rss'}};
 has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt_samfunnsprogram.rss'
@@ -52,7 +52,13 @@ has    'rsses' => sub {return ['https://podkast.nrk.no/program/ekko_-_et_aktuelt
     			]};
 has    'rejected';
 has    nore    => 300;
-
+has configfile =>($ENV{CONFIG_DIR}||$ENV{HOME}.'/etc').'/rss-reader.yml';
+has config => sub { YAML::Tiny::LoadFile(shift->configfile) };
+has downloaddir => sub ($self) {
+    my $return =  $self->config->downloaddir;
+    if(! $return) {die "Missing config downloaddir in file ".$self->configfile};
+    return $return
+};
 has states_integer => sub{$_[0]->rss->states_integer//{retrieve_episodes_epoch=>1000}};
 
 #
@@ -148,14 +154,11 @@ sub get_new_episodes {
 	if ($self->download) {
 		my @downloaded = split (/\,/, $self->download);
 		my @downepisodes = map {my $x =$_;$x=~s/wget //;$x} @{ $self->rss->episodes_read_by_ids(@downloaded) };
-#warn Dumper \@downepisodes;
-		#for my $d(@downepisodes) {
 		my $cmd = 'wget -P '.$self->downloaddir.' '.join(' ',map {my $x =$_;$x=~s/wget //;$x} map{my $x=$_;$x=~s/\?.*//;$x} map {$_->{url}} @downepisodes) ;
 		say $cmd;
 		my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
 		say $ret;
 		$self->rss->episodes_set_downloaded($_->{id}) for @downepisodes;
-	#	}
 
 		# rename duplicates
 		my $path = $self->downloaddir;
