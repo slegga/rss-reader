@@ -1,7 +1,7 @@
 package Model::RSS;
 use Mojo::Base -base, -signatures;
 use Mojo::SQLite;
-use Mojo::File 'path';
+use Mojo::File qw /path curfile/;
 use open ':encoding(UTF-8)';
 use Mojo::JSON 'to_json';
 #use Clone 'clone';
@@ -41,14 +41,18 @@ Default to a new Mojo::SQLite::Database object
 has dbfile => 'data/RSS.db';
 has sqlite => sub {
 	my $self = shift;
-	if ( -f $self->dbfile) {
-		return Mojo::SQLite->new()->from_filename($self->dbfile);
+	my $dbfile = path($0)->dirname->dirname->child($self->dbfile);
+#	die $dbfile;
+	if ( -f $dbfile) {
+		return Mojo::SQLite->new()->from_filename($dbfile->to_string);
 	} else {
-		my $path = path($self->dbfile)->dirname;
+	    warn $dbfile;
+
+		my $path = $dbfile->dirname;
 		if (!-d "$path" ) {
 			$path->make_path;
 		}
-		return Mojo::SQLite->new("file:".$self->dbfile);
+		return Mojo::SQLite->new("file:".$dbfile);
 	#	die "COULD NOT CREATE FILE ".$self->dbfile if ! -f $self->dbfile;
 	}
 

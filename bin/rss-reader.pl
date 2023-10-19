@@ -16,6 +16,8 @@ use Mojo::Promise;
 use Clone 'clone';
 # use XML::DOM::Parser;
 use XML::DOM;
+use Mojo::Date;
+use YAML::Syck;
 #use Carp::Always;
 
 =head1 NAME
@@ -56,7 +58,7 @@ has    'rejected';
 has    nore    => 300;
 has states_integer => sub{$_[0]->rss->states_integer//{retrieve_episodes_epoch=>1000}};
 has configfile =>($ENV{CONFIG_DIR}||$ENV{HOME}.'/etc').'/rss-reader.yml';
-has config => sub { YAML::Tiny::LoadFile(shift->configfile) };
+has config => sub { YAML::Syck::LoadFile(shift->configfile) };
 
 
 #
@@ -66,7 +68,8 @@ has config => sub { YAML::Tiny::LoadFile(shift->configfile) };
 sub get_downloaddir($self) {
 	my $return = $self->downloaddir;
 	if (! $return) {
-		$return = $self->config->downloaddir;
+		$return = $self->config->{downloaddir};
+		say "downloaddir: $return";
 	}
 	if(! $return) {
 		die "Missing config downloaddir: in file ".$self->configfile;
@@ -152,12 +155,9 @@ sub get_new_episodes {
 	    	if (! $raw->published) {
 	    	    warn "Missing published";
 	    	    p $raw;
-	    	    my $doc = $parser->parse($raw->to_string);
-	    	    my $nodes = $doc->getElementsByTagName ("CODEBASE");
-	    	    my $n = $nodes->getLength;
-	    	    say "LENGTH $n";
-	    	    ...;
-
+	    	    p $raw->dom;
+	    	    $raw->published(Mojo::Date->new($raw->dom->find('pubdate')->map('text')->join(" ")));
+#	    	    ...;
 	    	}
 	    	next if $self->states_integer->{'retrieve_episodes_epoch'} && $self->states_integer->{'retrieve_episodes_epoch'} > Mojo::Date->new($raw->published)->epoch;
 	 		$item->{feed} = $feed->title;
@@ -222,7 +222,8 @@ sub get_new_episodes {
 	if ($self->download) {
 		my @downloaded = split (/\,/, $self->download);
 		my @downepisodes = map {my $x =$_;$x=~s/wget //;$x} @{ $self->rss->episodes_read_by_ids(@downloaded) };
-		my $cmd = 'wget -P '.$self->get_downloaddir.' '.join(' ',map {my $x =$_;$x=~s/wget //;$x} map{my $x=$_;$x=~s/\?.*//;$x} map {$_->{url}} @downepisodes) ;
+		my $ddir = path($self->get_downloaddir)->to_string;
+		my $cmd = 'wget -P '.$ddir.' '.join(' ',map {my $x =$_;$x=~s/wget //;$x} map{my $x=$_;$x=~s/\?.*//;$x} map {$_->{url}} @downepisodes) ;
 		say $cmd;
 		my $ret = eval {`$cmd`;1;} or die "$@;$! $cmd";
 		say $ret;
