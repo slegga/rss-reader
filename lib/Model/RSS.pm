@@ -41,12 +41,19 @@ Default to a new Mojo::SQLite::Database object
 has dbfile => 'data/RSS.db';
 has sqlite => sub {
 	my $self = shift;
-	my $dbfile = path($0)->dirname->dirname->child($self->dbfile);
-#	die $dbfile;
+	my $dbfile = path($self->dbfile);
+
+	if ($dbfile =~/^\//) { # absolute path
+	    #keep
+	}
+	else {
+	    $dbfile = path($0)->dirname->dirname->child($dbfile);
+    }
+
 	if ( -f $dbfile) {
 		return Mojo::SQLite->new()->from_filename($dbfile->to_string);
 	} else {
-	    warn $dbfile;
+	    say STDERR $dbfile;
 
 		my $path = $dbfile->dirname;
 		if (!-d "$path" ) {

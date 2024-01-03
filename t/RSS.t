@@ -18,5 +18,6 @@ use Model::RSS;
 
 unlike(path('lib/Model/RSS.pm')->slurp, qr{\<[A-Z]+\>},'All placeholders are changed');
 my $m  = Model::RSS->new(dbfile=>$tempfile,debug=>1);
+ok(-f $tempfile,"Tempfile exists: ".$tempfile);
 is_deeply($m->episodes_read_by_ids('a'), [], 'output is ok');
 done_testing;
