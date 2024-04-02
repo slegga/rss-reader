@@ -8,6 +8,7 @@ use Mojo::Base 'SH::ScriptX', -signatures;
 use utf8;
 use open ':encoding(UTF-8)';
 use Mojo::Feed;
+use Mojo::DOM;
 use Data::Dumper;
 use Data::Printer;
 use Model::RSS;
@@ -18,6 +19,7 @@ use Clone 'clone';
 # use XML::DOM::Parser;
 use XML::DOM;
 use Mojo::Date;
+
 use YAML::Syck;
 
 #use Carp::Always;
@@ -126,7 +128,6 @@ sub get_new_episodes {
 #    p @feeds;
 
     for my $feed (@feeds) {
-        say ref $feed;
         next if !$feed;
         if (!ref $feed) {
             p $feed;
@@ -137,14 +138,12 @@ sub get_new_episodes {
             # say $feed->[0];
         }
         if (ref $feed ne 'Mojo::Feed') {
-            say "ref is " . ref $feed;
-            say "array num of items " . scalar @$feed;
-            my $x = $feed->[0];
-            say "ref2 is " . ref $x;
-            if (!ref $feed->[0]) {
-                $feed = Mojo::Feed->new(body => $x);
+            if (ref  $feed eq 'ARRAY' && ! ref $feed->[0] && scalar @$feed == 1) {
+                $feed = Mojo::Feed->new(dom => Mojo::DOM->new($feed->[0]));
             }
             else {
+                say "ref is " . ref $feed;
+                p $feed;
                 die $feed;
             }
 
@@ -195,7 +194,14 @@ sub get_new_episodes {
             }
             $item->{description} = $description;
             my $url = $raw->enclosures->to_array->[0];
-
+            if (! $url) {
+               $url = $raw->link;
+            }
+            if (! $url) {
+                p $raw;
+                p $item;
+                die "No url";
+            }
             next if $url !~ /mp3/i;
 
             $item->{id} = $raw->id;
@@ -288,6 +294,12 @@ sub main {
             grep   { exists $_->{title} && $_->{title} && !$_->{is_rejected} && !$_->{is_downloaded} }
             @{$self->rss->episodes_read_all};
         for my $item (@items[0 .. ($self->list - 1)]) {
+            next if ! $item;
+            if (! exists $item->{published_epoch}) {
+                say $item;
+                p $item;
+                die;
+            }
             say join(' ', $item->{id}, Mojo::Date->new->epoch($item->{published_epoch})->to_string, $item->{feed});
             for my $key (qw/title description url/) {
                 say $item->{$key};
