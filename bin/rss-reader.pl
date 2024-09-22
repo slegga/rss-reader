@@ -58,9 +58,9 @@ has 'rsses' => sub {
         , 'https://www.tu.no/emne/podkast'
 
 #    			, 'https://itunes.apple.com/no/podcast/game-at-first-sight/id1438153431'
-        , 'https://feed.pippa.io/public/shows/dobbeltklikk', 'http://vettogvitenskap.libsyn.com/rss',
-        'https://rss.podplaystudio.com/608.xml', 'https://feeds.acast.com/public/shows/30-minutter-inn-i-fremtiden',
-        'https://podkast.nrk.no/program/ukjent.rss'
+#        , 'https://feed.pippa.io/public/shows/dobbeltklikk', 'http://vettogvitenskap.libsyn.com/rss',
+        ,'https://rss.podplaystudio.com/608.xml', 'https://feeds.acast.com/public/shows/30-minutter-inn-i-fremtiden'
+        ,'https://podkast.nrk.no/program/ukjent.rss'
     ];
 };
 has 'rejected';
