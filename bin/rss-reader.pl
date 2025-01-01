@@ -61,6 +61,13 @@ has 'rsses' => sub {
 #        , 'https://feed.pippa.io/public/shows/dobbeltklikk', 'http://vettogvitenskap.libsyn.com/rss',
         ,'https://rss.podplaystudio.com/608.xml', 'https://feeds.acast.com/public/shows/30-minutter-inn-i-fremtiden'
         ,'https://podkast.nrk.no/program/ukjent.rss'
+        ,'https://sindrel.github.io/nrk-pod-feeds/rss/abels_taarn.xml'
+        ,'https://sindrel.github.io/nrk-pod-feeds/rss/burde_vaert_pensum.xml'
+        ,'https://sindrel.github.io/nrk-pod-feeds/rss/ekko_-_et_aktuelt_samfunnsprogram.xml'
+        ,'https://sindrel.github.io/nrk-pod-feeds/rss/kjente_boeker_paa_4_minutter.xml'
+        ,'https://sindrel.github.io/nrk-pod-feeds/rss/oppdatert.xml'
+        ,'https://sindrel.github.io/nrk-pod-feeds/rss/trygdekontoret.xml'
+        ,'https://feed.podbean.com/vertshuset/feed.xml'
     ];
 };
 has 'rejected';
