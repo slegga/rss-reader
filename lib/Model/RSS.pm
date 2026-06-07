@@ -4,8 +4,6 @@ use Mojo::SQLite;
 use Mojo::File qw /path curfile/;
 use open ':encoding(UTF-8)';
 use Mojo::JSON 'to_json';
-#use Clone 'clone';
-
 
 =head1 NAME
 

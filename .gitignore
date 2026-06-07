@@ -1,2 +1,17 @@
+# Test / harness state
 .prove
+
+# Perl debugger
 *.ptkdb
+
+# Logs
+*.log
+
+# Editor / OS cruft
+*~
+*.swp
+.DS_Store
+
+# Environment / secrets
+.env
+.env.*

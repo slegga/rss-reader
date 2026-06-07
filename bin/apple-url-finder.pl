@@ -21,7 +21,10 @@ print "Genre=$genre\n"  if ($genre);
 my $icon_url = $podcast->getIconURL();
 if ($icon_url) {   #SAVE THE ICON TO A TEMP. FILE:
         my ($image_ext, $icon_image) = $podcast->getIconData();
-        if ($icon_image && open IMGOUT, ">/tmp/${podcastID}.$image_ext") {
+        (my $safe_id  = $podcastID)  =~ s{[^A-Za-z0-9_-]}{_}g;
+        (my $safe_ext = $image_ext) =~ s{[^A-Za-z0-9]}{}g;
+        if (length $safe_id && length $safe_ext && $icon_image
+                && open IMGOUT, ">/tmp/${safe_id}.$safe_ext") {
                 binmode IMGOUT;
                 print IMGOUT $icon_image;
                 close IMGOUT;

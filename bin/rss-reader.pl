@@ -16,13 +16,9 @@ use Mojo::File 'path';
 use Mojo::Promise;
 use Clone 'clone';
 
-# use XML::DOM::Parser;
-use XML::DOM;
 use Mojo::Date;
 
 use YAML::Syck;
-
-#use Carp::Always;
 
 =head1 NAME
 
@@ -40,10 +36,9 @@ has 'rss' => sub { Model::RSS->new };
 option 'reject=s',   'Comma separated list of episode ids which you do not want to listen to';
 option 'download=s', 'Comma separated list og episode ids which is going ';
 option 'downloaddir=s',
-    'Dir to download to.';    # Default /media/$ENV{USER}/USB DISK';# ,{default=>"/media/$ENV{USER}/USB\\ DISK/"}
+    'Dir to download to.';
 option 'update!', 'Force full update of database based on feeds';
 
-#has    'downloadedrss' => sub {{vettogvitenskap =>'http://vettogvitenskap.libsyn.com/rss'}};
 has 'rsses' => sub {
     return [
          'http://vettogvitenskap.libsyn.com/rss',
@@ -81,8 +76,7 @@ sub get_downloaddir ($self) {
     return $return;
 }
 
-sub get_new_episodes {
-    my $self = shift;
+sub get_new_episodes ($self) {
     say "Update the database";
     my @unwanted = qw/antipanel reprise trær plante/;
     my %rejected
@@ -105,7 +99,7 @@ sub get_new_episodes {
         );
     }
 
-#    p @feed_p;
+
     my @feeds;
     $main_promise->all(@feed_p)->then(
         sub (@r) {
@@ -118,19 +112,13 @@ sub get_new_episodes {
         }
     )->wait;
 
-#    say "2" . (ref $feeds[0][0]||'__EMPTY2__');
 
-#    p @feeds;
 
     for my $feed (@feeds) {
         next if !$feed;
         if (!ref $feed) {
             p $feed;
             die "No ref";
-        }
-        if (ref $feed eq 'ARRAY') {
-
-            # say $feed->[0];
         }
         if (ref $feed ne 'Mojo::Feed') {
             if (ref  $feed eq 'ARRAY' && ! ref $feed->[0] && scalar @$feed == 1) {
@@ -142,13 +130,8 @@ sub get_new_episodes {
                 die $feed;
             }
 
-#            die "No items method";
-
         }
 
-#        say ref $feed;
-#        p $feed;
-        my $parser = new XML::DOM::Parser;
     ITEM:
         for my $raw ($feed->items->head($self->nore)->each) {
             next if !$raw;
@@ -178,7 +161,7 @@ sub get_new_episodes {
             my $title = $raw->title;
 
             for my $x (@unwanted) {
-                next if $title =~ /$x/i;
+                next ITEM if $title =~ /$x/i;
             }
             $item->{title} = $raw->title;
 
@@ -217,8 +200,7 @@ sub get_new_episodes {
     return \@items;
 }
 
-sub main {
-    my $self = shift;
+sub main ($self) {
     my @e    = @{$self->extra_options};
 
 
@@ -244,20 +226,23 @@ sub main {
     }
     if ($self->download) {
         my @downloaded   = split(/\,/, $self->download);
-        my @downepisodes = map { my $x = $_; $x =~ s/wget //; $x } @{$self->rss->episodes_read_by_ids(@downloaded)};
+        my @downepisodes = @{$self->rss->episodes_read_by_ids(@downloaded)};
         my $ddir         = path($self->get_downloaddir)->to_string;
-        my $cmd
-            = 'wget -P '
-            . $ddir . ' '
-            . join(' ',
-            map { my $x = $_; $x =~ s/wget //; $x }
-            map { my $x = $_; $x =~ s/\?.*//; $x } map { $_->{url} } @downepisodes);
-        say $cmd;
-        my $ret = eval { `$cmd`; 1; } or die "$@;$! $cmd";
-        say $ret;
-        $self->rss->episodes_set_downloaded($_->{id}) for @downepisodes;
+        my @urls         = map {
+            my $u = $_->{url};
+            $u =~ s/wget //;
+            $u =~ s/\?.*//;
+            $u;
+        } @downepisodes;
 
-        #	}
+        if ($self->dryrun) {
+            say "DRYRUN: wget -P $ddir @urls";
+        }
+        else {
+            my $ret = system('wget', '-P', $ddir, @urls);
+            die "wget failed: exit=$? " . join(' ', @urls) if $ret != 0;
+        }
+        $self->rss->episodes_set_downloaded($_->{id}) for @downepisodes;
 
         # rename duplicates
         my $path = $self->get_downloaddir;
