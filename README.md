@@ -160,6 +160,13 @@ rss-reader/
 └── LICENSE
 ```
 
+## Mount USB on WSL
+```
+sudo mkdir -p /mnt/d
+sudo mount -t drvfs D: /mnt/d
+```
+
+
 ## License
 
 MIT — see `LICENSE`.
